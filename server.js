@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 app.post('/send-email', async (req, res) => {
   const data = req.body;
 
-  const mailOptions = {
+  const adminMail = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
     subject: `New Enquiry from ${data.name}`,
@@ -37,14 +37,30 @@ Queries: ${data.queries}
     `
   };
 
+  const userMail = {
+    from: process.env.EMAIL_USER,
+    to: data.email,
+    subject: `Thanks for registering with Amite Invent-ory`,
+    text: `Hi ${data.name},
+
+Thanks for registering your enquiry with Amite Invent-ory.
+
+Our team will contact you shortly regarding your request.
+
+Regards,  
+Team Amite Invent-ory`
+  };
+
   try {
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ success: true, message: 'Email sent' });
+    await transporter.sendMail(adminMail);
+    await transporter.sendMail(userMail);
+    res.status(200).json({ success: true, message: "Emails sent" });
   } catch (err) {
-    console.error('Error sending email:', err);
-    res.status(500).json({ success: false, message: 'Email failed', error: err.message });
+    console.error("Email sending error:", err);
+    res.status(500).json({ success: false, message: "Email failed", error: err.message });
   }
 });
+
 
 app.listen(3000, () => {
   console.log('Server running on http://localhost:3000');
