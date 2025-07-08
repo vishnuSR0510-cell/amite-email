@@ -1,79 +1,61 @@
-require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const nodemailer = require('nodemailer');
-
 const app = express();
-app.use(cors());
 app.use(express.json());
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+app.post("/send-email", async (req, res) => {
+  const { name, email, type, reg, phone, college, city, state, queries } = req.body;
 
-app.post('/send-email', async (req, res) => {
-  const data = req.body;
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: "yourteamemail@gmail.com",
+      pass: "your-app-password" // App Password, NOT regular Gmail password
+    }
+  });
 
-  if (!data.email || !data.name) {
-    return res.status(400).json({ success: false, message: "Missing user email or name" });
-  }
-
-  console.log("✅ Admin will receive at:", process.env.EMAIL_TO);
-  console.log("✅ User will receive at:", data.email);
-  console.log("📩 Received enquiry data:", data);
-
-  const adminMail = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: `New Enquiry from ${data.name}`,
-    text: `
-New enquiry received:
-
-Name: ${data.name}
-Type: ${data.type}
-Reg No: ${data.reg}
-Phone: ${data.phone}
-Email: ${data.email}
-College: ${data.college}
-City: ${data.city}
-State: ${data.state}
-Queries: ${data.queries}
+  // 1. Email to Team
+  const teamMailOptions = {
+    from: "yourteamemail@gmail.com",
+    to: "yourteamemail@gmail.com", // your team email
+    subject: `New Enquiry from ${name}`,
+    html: `
+      <h2>New Project/Enquiry Request</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Type:</strong> ${type}</p>
+      <p><strong>Reg No:</strong> ${reg}</p>
+      <p><strong>Phone:</strong> ${phone}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>College:</strong> ${college}</p>
+      <p><strong>City:</strong> ${city}</p>
+      <p><strong>State:</strong> ${state}</p>
+      <p><strong>Query:</strong> ${queries}</p>
     `
   };
 
-  const userMail = {
-    from: process.env.EMAIL_USER,
-    to: data.email,
-    subject: `Thanks for registering with Amite Invent-ory`,
+  // 2. Confirmation Email to Customer
+  const customerMailOptions = {
+    from: "yourteamemail@gmail.com",
+    to: email, // customer email
+    subject: "✅ Amite Invent-ory - Enquiry Received",
     html: `
-      <p>Hi <strong>${data.name}</strong>,</p>
-      <p>Thanks for registering your enquiry with <strong>Amite Invent-ory</strong>.</p>
-      <p>Our team will contact you shortly regarding your request.</p>
-      <br>
-      <p>Regards,<br>Team Amite Invent-ory</p>
+      <h3>Dear ${name},</h3>
+      <p>Thank you for contacting <strong>Amite Invent-ory</strong>! We have received your enquiry and will get back to you shortly.</p>
+      <p><strong>Your Query:</strong><br>${queries}</p>
+      <p>📞 For urgent queries, call us at <strong>+91 9176860553</strong>.</p>
+      <p>Best regards,<br>Team Amite Invent-ory</p>
     `
   };
 
   try {
-    console.log("📤 Sending admin email to:", process.env.EMAIL_TO);
-    await transporter.sendMail(adminMail);
-
-    console.log("📤 Sending confirmation to user:", data.email);
-    await transporter.sendMail(userMail);
-
-    res.status(200).json({ success: true, message: "Emails sent" });
-  } catch (err) {
-    console.error("❌ Email sending error:", err);
-    res.status(500).json({ success: false, message: "Email failed", error: err.message });
+    await transporter.sendMail(teamMailOptions);
+    await transporter.sendMail(customerMailOptions);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Email error:", error);
+    res.json({ success: false, error: error.message });
   }
 });
 
-app.listen(3000, () => {
-  console.log('🚀 Server running on http://localhost:3000');
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
